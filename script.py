@@ -2,7 +2,6 @@
 
 import bibtexparser
 from bibtexparser.bwriter import BibTexWriter
-from bibtexparser.bibdatabase import as_text
 
 import os, sys
 
@@ -16,7 +15,7 @@ def get_url(bib_entry):
         return None
 
 
-def process_entry(bib_entry):
+def process_entry(bib_entry, delete_keys=['pages', 'language', 'number', 'url']):
     url = get_url(bib_entry)
     new_entry = bib_entry.copy()
 
@@ -25,12 +24,9 @@ def process_entry(bib_entry):
         title_with_url = f"\href{{{url}}}{{{title}}}"
         new_entry['title'] = title_with_url
 
-    delete_keys = ['url', 'abstract', 'pages', 'language', 'urldate', 'pages', 'keywords', 'note', 'number']
     for k in delete_keys:
-        try:
+        if k in new_entry:
             del new_entry[k]
-        except KeyError:
-            pass
 
     return new_entry
 
@@ -42,13 +38,17 @@ def process_bib(bib_db):
 
 
 def main():
-    filename = sys.argv[1]
-    with open(filename, 'r') as f:
-        processed = process_bib(bibtexparser.load(f))
+    if len(sys.argv) == 1:
+        print("usage: script.py (file name) [additional file names]")
 
-    writer = BibTexWriter()
-    sys.stdout.write(writer.write(processed))
+    filenames = sys.argv[1:]
+    for filename in filenames:
+        with open(filename, 'r') as f:
+            parser = bibtexparser.bparser.BibTexParser(common_strings=True).parse_file
+            processed = process_bib(parser(f))
 
+        writer = BibTexWriter()
+        sys.stdout.write(writer.write(processed))
 
 if __name__ == '__main__':
     main()
